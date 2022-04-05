@@ -111,7 +111,6 @@ const PokemonByNamePage: NextPage<Props> = ({ pokemon }) => {
 };
 
 // You should use getStaticPaths if you’re statically pre-rendering pages that use dynamic routes
-
 export const getStaticPaths: GetStaticPaths = async (ctx) => {
 	const { data } = await pokeApi.get<PokemonListResponse>(
 		'/pokemon?limit=151'
@@ -123,17 +122,33 @@ export const getStaticPaths: GetStaticPaths = async (ctx) => {
 		paths: pokemonNames.map((name) => ({
 			params: { name },
 		})),
-		fallback: false,
+		//fallback: false,
+		fallback: 'blocking',
 	};
 };
 
+// Le pasa las props a nuestra pagina en build time, esto quiere decir que nuestra app
+// no tiene que estar haciendo peticiones para traer esta informaciíon. Está información queda guardada
+// en un archivo propio del sistema, asi que no hay que pedirla de nuevo al servidor
 export const getStaticProps: GetStaticProps = async ({ params }) => {
 	const { name } = params as { name: string };
 
+	const pokemon = await getPokemonInfo(name);
+
+	if (!pokemon) {
+		return {
+			redirect: {
+				destination: '/',
+				permanent: false,
+			},
+		};
+	}
+
 	return {
 		props: {
-			pokemon: await getPokemonInfo(name),
+			pokemon,
 		},
+		revalidate: 86400,
 	};
 };
 
